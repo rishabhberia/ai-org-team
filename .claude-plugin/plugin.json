@@ -1,0 +1,16 @@
+{
+  "name": "ai-org-team",
+  "version": "1.0.0",
+  "description": "Build and run an AI organization in Claude Code: one AI per department, coordinated by a Management AI, talking through monitored sub-sessions with provenance, confidentiality walls and no AI approval authority.",
+  "license": "MIT",
+  "keywords": [
+    "multi-agent",
+    "organization",
+    "departments",
+    "chief-of-staff",
+    "governance"
+  ],
+  "author": {
+    "name": "ai-org-team contributors"
+  }
+}

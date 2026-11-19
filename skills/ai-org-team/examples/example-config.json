@@ -1,0 +1,46 @@
+{
+  "org": "Northwind Equipment Rentals",
+  "principal": "the Managing Director",
+  "root": "~/ai-team",
+  "management": { "name": "Northwind Management AI", "dir": "Northwind Management AI" },
+  "modules": { "principal_office": true, "piaf": true },
+  "departments": [
+    {
+      "slug": "sales", "short": "SAL", "name": "Sales", "ai_name": "Northwind Sales AI", "dir": "Northwind Sales AI",
+      "owns": "the rental pipeline, quotes, the rate card and account relationships",
+      "ask_for": ["The pipeline and dated renewals", "The rate card and how a quote is built", "An account's sales state of play"],
+      "not_for": ["Whether a contract is executed (→ Legal)", "Outstanding or collections (→ Finance)", "Where equipment is or its condition (→ Operations)"],
+      "restricted": ["Internal pricing build-ups and margins", "One client's terms in another client's file"],
+      "systems": [{ "system": "CRM", "connector": "crm MCP", "others_may": "Read", "never": "Write without the Managing Director's approval for that action" }]
+    },
+    {
+      "slug": "legal", "short": "LEG", "name": "Legal", "ai_name": "Northwind Legal AI", "dir": "Northwind Legal AI",
+      "owns": "contracts, entities and registrations, disputes and compliance",
+      "ask_for": ["Contract status (EXECUTED / DRAFT) and terms", "Entity and registration facts", "Disputes and notices"],
+      "not_for": ["Money figures (→ Finance)", "Pricing (→ Sales)"],
+      "restricted": ["Privileged legal material", "Litigation strategy"]
+    },
+    {
+      "slug": "finance", "short": "FIN", "name": "Finance", "ai_name": "Northwind Finance AI", "dir": "Northwind Finance AI",
+      "owns": "receivables, billing, revenue and expenses",
+      "ask_for": ["Any money figure: billed, received, outstanding, with basis and as-of date"],
+      "not_for": ["Whether work was delivered (→ Operations)", "Contract terms (→ Legal)"],
+      "restricted": ["Bank account details", "Individual pay figures"],
+      "systems": [{ "system": "Accounting system", "connector": "accounting MCP", "others_may": "Ask FIN", "never": "State a figure from it without FIN" }]
+    },
+    {
+      "slug": "operations", "short": "OPS", "name": "Operations", "ai_name": "Northwind Operations AI", "dir": "Northwind Operations AI",
+      "owns": "the equipment fleet, deliveries, maintenance and service evidence",
+      "ask_for": ["Equipment location, condition and availability", "Delivery evidence behind an invoice", "Maintenance history"],
+      "not_for": ["Money figures (→ Finance)", "Contract terms (→ Legal)"],
+      "restricted": ["Technician pay rates shown in job reports"]
+    }
+  ],
+  "walls": [
+    { "wall": "Individual pay — salary, pay rates", "held_by": "finance", "may_cross": "The rule or an aggregate. Never a named person's number" },
+    { "wall": "Privileged legal material", "held_by": "legal", "may_cross": "Legal's conclusion, only as far as the asker needs it" },
+    { "wall": "Internal pricing build-ups", "held_by": "sales", "may_cross": "The approved price" },
+    { "wall": "Credentials and secrets — passwords, tokens, API keys, account numbers", "held_by": "nobody", "may_cross": "Write [redacted — see <path>]" },
+    { "wall": "Raw source files — contracts, HR records, financial workbooks", "held_by": "nobody", "may_cross": "A summary with the path cited. Never copy the file into a repo" }
+  ]
+}

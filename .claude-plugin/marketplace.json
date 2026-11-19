@@ -1,0 +1,14 @@
+{
+  "name": "ai-org-team",
+  "owner": {
+    "name": "ai-org-team contributors"
+  },
+  "plugins": [
+    {
+      "name": "ai-org-team",
+      "source": "./",
+      "description": "Build and run an AI organization in Claude Code: departmental AIs under a Management AI, talking through monitored sub-sessions."
+    }
+  ],
+  "description": "Build and run an AI organization in Claude Code."
+}
