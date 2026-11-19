@@ -5,7 +5,7 @@ Usage:
     python3 check.py MANAGEMENT_REPO_PATH
 
 It reads the department directory in the Management repo and reports, without changing anything:
-  * departments whose repo folder is missing, has no CLAUDE.md, or no knowledge/interop/ai-team.md
+  * departments whose repo folder is missing, has no CLAUDE.md, or no <kb root>/interop/ai-team.md
   * department charters that do not point at the Management repo's protocol
   * ledger rows whose from/to slug is not a registered department
   * ledger rows with an unknown status
@@ -36,8 +36,9 @@ def departments(mgmt):
     for block in text.split("\n## ")[1:]:
         repo = re.search(r"\| Repo \| `([^`]+)` \|", block)
         slug = re.search(r"\| Slug \| `([a-z0-9-]+)`", block)
+        kbm = re.search(r"\| KB root \| `([^`]+?)/?` ", block)
         if repo and slug and slug.group(1) != "management":
-            out.append((slug.group(1), Path(repo.group(1)).expanduser()))
+            out.append((slug.group(1), Path(repo.group(1)).expanduser(), kbm.group(1) if kbm else "knowledge"))
     return out
 
 
@@ -54,9 +55,9 @@ def main():
     depts = departments(mgmt)
     if not depts:
         problems.append("department directory lists no departments with a Repo and Slug row")
-    slugs = {s for s, _ in depts} | {"management"}
+    slugs = {s for s, _, _ in depts} | {"management"}
 
-    for slug, repo in depts:
+    for slug, repo, kbroot in depts:
         if not repo.is_dir():
             problems.append(f"[{slug}] repo folder missing: {repo}")
             continue
@@ -65,10 +66,10 @@ def main():
             problems.append(f"[{slug}] no CLAUDE.md in {repo}")
         elif str(mgmt) not in charter.read_text(encoding="utf-8"):
             problems.append(f"[{slug}] CLAUDE.md does not point at the Management repo ({mgmt})")
-        if not (repo / "knowledge/interop/ai-team.md").exists():
-            problems.append(f"[{slug}] no knowledge/interop/ai-team.md")
+        if not (repo / kbroot / "interop/ai-team.md").exists():
+            problems.append(f"[{slug}] no {kbroot}/interop/ai-team.md")
 
-    for repo in [mgmt] + [r for _, r in depts if r.is_dir()]:
+    for repo in [mgmt] + [r for _, r, _ in depts if r.is_dir()]:
         code, remotes = git(repo, "remote")
         if code != 0:
             problems.append(f"not a git repo: {repo}")

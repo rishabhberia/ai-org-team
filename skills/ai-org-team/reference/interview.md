@@ -1,6 +1,8 @@
 # Setup interview
 
-Ask these in a few rounds, not all at once. Write the answers into the config file
+Do the structure design first (see [department-archetypes.md](department-archetypes.md)): which
+departments, which are split into several AIs, which are merged. Then ask these in a few rounds,
+not all at once. Write the answers into the config file
 (`examples/example-config.json` shows the format). Never fill a gap with a guess: an unanswered
 item stays unanswered and setup waits for it.
 
@@ -28,11 +30,15 @@ For each department (at least two):
 | `short` | 2–5 capital letters for the capability matrix (e.g. FIN) |
 | `ai_name` | What should its AI be called? |
 | `dir` | Its folder under the root. If a project already exists for it, give that folder: the skill wires it in without touching its charter |
+| `group` | *(optional)* The department it belongs to, when one department has several AIs (e.g. two Sales AIs, one per business line). Same `group` on each |
+| `kb_root` | *(optional)* Its knowledge folder, if not `knowledge` (e.g. an existing project that uses `docs` or `kb`) |
 | `owns` | What does it own? One sentence |
 | `ask_for` | What should other departments ask it for? A list |
 | `not_for` | What should they **not** ask it for, and who owns that instead? A list, "→ Dept" at the end |
 | `restricted` | What must never leave it? A list |
 | `systems` | Which systems or connectors does it own? For each: what others may do, and what nobody else may ever do (optional) |
+
+After this round, run `scaffold.py --preview` and show the user the org chart before going on.
 
 Check the answers against each other: every "→ Dept" in `not_for` must name a department that
 exists. If two departments both claim the same thing, ask which one owns it. Do not split it.

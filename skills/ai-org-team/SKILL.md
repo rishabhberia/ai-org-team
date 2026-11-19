@@ -45,28 +45,41 @@ Pick the one that matches the request.
 
 ### A. Set up a new team
 
-1. **Interview the user** with [reference/interview.md](reference/interview.md). Never invent a
-   department's scope, its restricted material, a system's owner or the principal's name: ask.
-   Offer the standard walls listed there as a starting point; the user confirms or edits them.
-2. **Write the config** to a working file (format: [examples/example-config.json](examples/example-config.json)).
-   Every department needs `slug`, `short`, `name`, `ai_name`, `dir`, `owns`, `ask_for`,
-   `not_for`, `restricted`; `systems` and `matrix` are optional. Show the user the departments and
-   walls in a short table and get a yes.
-3. **Dry run:** `python3 scripts/scaffold.py <config> --dry-run`. Fix any config error it reports;
+The user designs the structure; you propose and they decide. Nothing is generated until they
+have approved a preview.
+
+1. **Design the structure with the user.** Ask what the organization does and how it is run
+   today. Propose departments from [reference/department-archetypes.md](reference/department-archetypes.md)
+   that fit, and anything else the business clearly needs, one line of reasoning each. The user
+   adds, drops, renames, **splits** a department into several AIs (e.g. Sales → two business
+   lines, kept together by a shared `group`), or **merges** two into one AI. Every domain must end
+   up with exactly one owner; where two departments would both own something, the user chooses.
+2. **Interview for the details** with [reference/interview.md](reference/interview.md): the
+   principal, the root folder, names of each AI and its folder (an existing project folder is
+   fine), its scope, what to ask it and not ask it, what is restricted, the systems it owns, the
+   walls, and the optional modules. Never invent any of these: ask.
+3. **Write the config** to a working file (format: [examples/example-config.json](examples/example-config.json)).
+   Required per department: `slug`, `short`, `name`, `ai_name`, `dir`, `owns`, `ask_for`,
+   `not_for`, `restricted`. Optional: `group` (several AIs under one department), `kb_root`
+   (knowledge folder, default `knowledge`), `systems`, `matrix`.
+4. **Preview:** `python3 scripts/scaffold.py <config> --preview`. Show the user the org chart, the
+   table of AIs and folders (new or existing project), and the walls. Change the config and
+   preview again until the user says yes.
+5. **Dry run:** `python3 scripts/scaffold.py <config> --dry-run`. Fix any config error it reports;
    do not work around it.
-4. **Run it:** `python3 scripts/scaffold.py <config>`. It creates the Management repo and every new
+6. **Run it:** `python3 scripts/scaffold.py <config>`. It creates the Management repo and every new
    department repo. It never overwrites a file. For a department folder that already has a
    `CLAUDE.md` (an existing project) it leaves the charter alone and writes the charter section to
    a patch file.
-5. **Existing projects:** merging the patch into an existing project's `CLAUDE.md` is that
+7. **Existing projects:** merging the patch into an existing project's `CLAUDE.md` is that
    project's work. Start a session in that project to merge it under its own charter, after the
    user agrees.
-6. **Git:** `git init` each new repo and make the first commit. Ask the user before creating any
+8. **Git:** `git init` each new repo and make the first commit. Ask the user before creating any
    remote; recommend **private** remotes, since these repos will hold business knowledge.
-7. **Check:** `python3 scripts/check.py <management repo>`. Report every problem it prints.
-8. **First real request:** suggest the user try one cross-department question so the protocol gets
-   exercised. Expect the first few to change the protocol, and record those changes in the
-   decision register.
+9. **Check:** `python3 scripts/check.py <management repo>`. Report every problem it prints.
+10. **First real request:** suggest the user try one cross-department question so the protocol
+    gets exercised. Expect the first few to change the protocol, and record those changes in the
+    decision register.
 
 ### B. Add a department
 

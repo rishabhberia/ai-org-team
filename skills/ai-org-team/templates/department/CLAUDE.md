@@ -8,8 +8,8 @@ tests it; you supervise and report.
 
 ## Start of every session
 
-1. Read [`knowledge/00-INDEX.md`](knowledge/00-INDEX.md).
-2. Read [`knowledge/open-items.md`](knowledge/open-items.md).
+1. Read [`{{KB}}/00-INDEX.md`]({{KB}}/00-INDEX.md).
+2. Read [`{{KB}}/open-items.md`]({{KB}}/open-items.md).
 3. Read the last few entries of [`logs/{{DEPT_SLUG}}-log.md`](logs/{{DEPT_SLUG}}-log.md).
 4. Read the ledger `{{MGMT_PATH}}/exchange/REGISTER.md` and pick up anything addressed to
    `{{DEPT_SLUG}}` that is not `CLOSED`.
@@ -36,8 +36,8 @@ Sources owned by other departments are not listed here. Ask those departments by
 {{CHARTER_SECTION}}
 ## End of every session
 
-1. Update the affected `knowledge/**` files (bump `updated:`, cite sources).
+1. Update the affected `{{KB}}/**` files (bump `updated:`, cite sources).
 2. Update the ledger rows for sessions you started or answered.
 3. Append a dated entry to [`logs/{{DEPT_SLUG}}-log.md`](logs/{{DEPT_SLUG}}-log.md).
-4. Update [`knowledge/open-items.md`](knowledge/open-items.md).
+4. Update [`{{KB}}/open-items.md`]({{KB}}/open-items.md).
 5. Commit and push. Nothing this department records may exist only on one machine.

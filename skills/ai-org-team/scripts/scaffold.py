@@ -2,6 +2,7 @@
 """Scaffold an AI team (one Management AI repo + one repo per department) from a config file.
 
 Usage:
+    python3 scaffold.py CONFIG.json --preview      # show the proposed structure; write nothing
     python3 scaffold.py CONFIG.json [--dry-run] [--patch-dir DIR] [--today YYYY-MM-DD]
 
 What it does:
@@ -29,6 +30,7 @@ TEMPLATES = HERE.parent / "templates"
 SLUG_RE = re.compile(r"^[a-z][a-z0-9-]{1,30}$")
 SHORT_RE = re.compile(r"^[A-Z]{2,5}$")
 PLACEHOLDER_RE = re.compile(r"\{\{[A-Z_]+\}\}")
+KB_RE = re.compile(r"^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$")
 
 DEPT_REQUIRED = ["slug", "short", "name", "ai_name", "dir", "owns", "ask_for", "not_for", "restricted"]
 
@@ -77,6 +79,11 @@ def load_config(path):
         if ddir in seen_dir or ddir == mgmt.get("dir"):
             errors.append(f"{where}: folder '{ddir}' is used twice")
         seen_dir.add(ddir)
+        kb = d.get("kb_root", "knowledge")
+        if not isinstance(kb, str) or not KB_RE.match(kb) or ".." in kb.split("/"):
+            errors.append(f"{where}: kb_root '{kb}' must be a relative folder like 'knowledge' or 'docs/kb'")
+        if "group" in d and (not isinstance(d["group"], str) or not d["group"].strip()):
+            errors.append(f"{where}: group, when given, must be a non-empty name")
         for listkey in ("ask_for", "not_for", "restricted"):
             if listkey in d and not isinstance(d[listkey], list):
                 errors.append(f"{where}: '{listkey}' must be a list of strings")
@@ -105,6 +112,30 @@ def load_config(path):
 
 # ---------------------------------------------------------------- rendering helpers
 
+def label(d):
+    """Display label: 'Group — Name' when the department sits in a group with a different name."""
+    g = d.get("group")
+    return f"{g} — {d['name']}" if g and g != d["name"] else d["name"]
+
+
+def kb(d):
+    return d.get("kb_root", "knowledge")
+
+
+def groups_in_order(cfg):
+    """[(group_name_or_None, [departments])] in order of first appearance; ungrouped stand alone."""
+    out = []
+    for d in cfg["departments"]:
+        g = d.get("group")
+        if g and out and out[-1][0] == g:
+            out[-1][1].append(d)
+        elif g and any(x[0] == g for x in out):
+            next(x for x in out if x[0] == g)[1].append(d)
+        else:
+            out.append((g, [d]))
+    return out
+
+
 def md_list(items):
     return "\n".join(f"- {x}" for x in items)
 
@@ -113,7 +144,7 @@ def team_table(cfg, mgmt_path):
     rows = ["| Department | AI | Repo | Ask it for |", "|---|---|---|---|"]
     for d in cfg["departments"]:
         path = str(Path(cfg["_root"]) / d["dir"])
-        rows.append(f"| {d['name']} | {d['ai_name']} | `{path}` | {'; '.join(d['ask_for'])} |")
+        rows.append(f"| {label(d)} | {d['ai_name']} | `{path}` | {'; '.join(d['ask_for'])} |")
     rows.append(f"| **Management** | {cfg['management']['name']} | `{mgmt_path}` | Routing, "
                 "cross-department orchestration, conflicts, the organization view. It lends no authority |")
     return "\n".join(rows)
@@ -121,10 +152,18 @@ def team_table(cfg, mgmt_path):
 
 def team_tree(cfg):
     lines = ["```", f"{cfg['org']} AI team", f"└── {cfg['management']['name']}"]
-    depts = cfg["departments"]
-    for i, d in enumerate(depts):
-        branch = "└──" if i == len(depts) - 1 else "├──"
-        lines.append(f"    {branch} {d['name']} — {d['ai_name']}")
+    grouped = groups_in_order(cfg)
+    for i, (g, members) in enumerate(grouped):
+        last = i == len(grouped) - 1
+        branch, pad = ("└──", "    ") if last else ("├──", "│   ")
+        if g and (len(members) > 1 or members[0]["name"] != g):
+            lines.append(f"    {branch} {g}")
+            for j, d in enumerate(members):
+                sub = "└──" if j == len(members) - 1 else "├──"
+                lines.append(f"    {pad}{sub} {d['name']} — {d['ai_name']}")
+        else:
+            d = members[0]
+            lines.append(f"    {branch} {d['name']} — {d['ai_name']}")
     lines.append("```")
     return "\n".join(lines)
 
@@ -135,12 +174,12 @@ def directory_sections(cfg):
         path = str(Path(cfg["_root"]) / d["dir"])
         out.append(f"""---
 
-## {d['name']} · **{d['ai_name']}**
+## {label(d)} · **{d['ai_name']}**
 
 | | |
 |---|---|
 | Repo | `{path}` |
-| KB root | `knowledge/` (start at `knowledge/00-INDEX.md`) |
+| KB root | `{kb(d)}/` (start at `{kb(d)}/00-INDEX.md`) |
 | Slug | `{d['slug']}` (shorthand {d['short']}) |
 | Owns | {d['owns']} |
 
@@ -231,7 +270,7 @@ def build(cfg, today, patch_dir, dry_run):
         "MGMT_NAME": cfg["management"]["name"],
         "MGMT_PATH": mgmt_path,
         "DEPT_COUNT": str(len(cfg["departments"])),
-        "DEPT_LIST": ", ".join(d["name"] for d in cfg["departments"]),
+        "DEPT_LIST": ", ".join(label(d) for d in cfg["departments"]),
         "TEAM_TABLE": team_table(cfg, mgmt_path),
     }
 
@@ -273,13 +312,13 @@ def build(cfg, today, patch_dir, dry_run):
         "DECISIONS_OPTIONAL": dec_opt,
         "DIRECTORY_SECTIONS": directory_sections(cfg),
         "MATRIX_ROWS": matrix_rows(cfg),
-        "SHORTHAND": ", ".join(f"{d['short']} = {d['name']}" for d in cfg["departments"]) + ", MGT = Management",
+        "SHORTHAND": ", ".join(f"{d['short']} = {label(d)}" for d in cfg["departments"]) + ", MGT = Management",
         "SYSTEMS_ROWS": systems_rows(cfg),
         "WALLS_TABLE": walls_table(cfg),
         "STANDING_AUTHORISATIONS": cfg.get("standing_authorisations", "") and
             ("## Standing authorisations\n\n" + cfg["standing_authorisations"]),
         "SLUGS": ", ".join(f"`{d['slug']}`" for d in cfg["departments"]),
-        "BUSINESS_ROWS": "\n".join(f"| {d['name']} | {d['owns']} | {d['name']} |" for d in cfg["departments"]),
+        "BUSINESS_ROWS": "\n".join(f"| {label(d)} | {d['owns']} | {label(d)} |" for d in cfg["departments"]),
     })
 
     w = Writer(dry_run)
@@ -301,7 +340,7 @@ def build(cfg, today, patch_dir, dry_run):
         dvals = dict(base)
         restricted_rule = "6. **Restricted — never leaves this department:** " + "; ".join(d["restricted"]) + "."
         dvals.update({
-            "DEPT_NAME": d["name"], "AI_NAME": d["ai_name"], "DEPT_SLUG": d["slug"], "OWNS": d["owns"],
+            "DEPT_NAME": label(d), "AI_NAME": d["ai_name"], "KB": kb(d), "DEPT_SLUG": d["slug"], "OWNS": d["owns"],
             "OWNS_SENTENCE": f"You own {d['owns']}; every other domain is asked of its owner.",
             "ASK_FOR": md_list(d["ask_for"]), "RESTRICTED": md_list(d["restricted"]),
             "RESTRICTED_RULE": restricted_rule,
@@ -313,7 +352,7 @@ def build(cfg, today, patch_dir, dry_run):
         ddir = root / d["dir"]
         existing = (ddir / "CLAUDE.md").exists()
         if existing:
-            w.write(ddir / "knowledge/interop/ai-team.md", render(read_t("department/knowledge/interop/ai-team.md"), dvals))
+            w.write(ddir / kb(d) / "interop/ai-team.md", render(read_t("department/knowledge/interop/ai-team.md"), dvals))
             ppath = Path(patch_dir) / f"{d['slug']}-charter-section.md"
             w.write(ppath, section)
             patches.append((d["slug"], str(ddir), str(ppath)))
@@ -322,6 +361,8 @@ def build(cfg, today, patch_dir, dry_run):
             if not tpl.is_file() or tpl.name == "_charter-section.md":
                 continue
             rel = tpl.relative_to(TEMPLATES / "department")
+            if rel.parts[0] == "knowledge":
+                rel = Path(kb(d)).joinpath(*rel.parts[1:])
             if str(rel) == "logs/log.md":
                 rel = Path("logs") / f"{d['slug']}-log.md"
             w.write(ddir / rel, render(tpl.read_text(encoding="utf-8"), dvals))
@@ -329,9 +370,36 @@ def build(cfg, today, patch_dir, dry_run):
     return w, patches, mgmt_path
 
 
+def preview(cfg):
+    """Print the proposed structure for the user to approve. Writes nothing."""
+    root = Path(os.path.expanduser(cfg["root"])).resolve()
+    cfg["_root"] = str(root)
+    mods = cfg.get("modules", {})
+    print(team_tree(cfg))
+    print(f"\nPrincipal (approves sends, writes, merges, deploys): {cfg['principal']}")
+    print(f"Root folder: {root}")
+    on = [m for m, v in (("principal's office", mods.get("principal_office")), ("PIAF", mods.get("piaf"))) if v]
+    print(f"Optional modules: {', '.join(on) if on else 'none'}\n")
+    print("| Department | AI | Folder | New or existing | KB root | Ledger slug |")
+    print("|---|---|---|---|---|---|")
+    mgmt = root / cfg["management"]["dir"]
+    state = "EXISTS — will refuse" if (mgmt / "CLAUDE.md").exists() else "new"
+    print(f"| Management | {cfg['management']['name']} | `{cfg['management']['dir']}` | {state} | knowledge/ | management |")
+    for d in cfg["departments"]:
+        ddir = root / d["dir"]
+        state = "existing project (charter not touched)" if (ddir / "CLAUDE.md").exists() else "new"
+        print(f"| {label(d)} | {d['ai_name']} | `{d['dir']}` | {state} | {kb(d)}/ | {d['slug']} |")
+    names = {d["slug"]: label(d) for d in cfg["departments"]}
+    print("\nConfidentiality walls:")
+    for w in cfg["walls"]:
+        held = "nobody (belongs in no repo)" if w["held_by"] == "nobody" else names[w["held_by"]]
+        print(f"- {w['wall']} — held by {held}; may cross: {w['may_cross']}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config")
+    ap.add_argument("--preview", action="store_true", help="print the proposed structure; write nothing")
     ap.add_argument("--dry-run", action="store_true", help="show what would be written; write nothing")
     ap.add_argument("--patch-dir", help="where charter sections for existing repos go "
                     "(default: <root>/_ai-org-setup-patches)")
@@ -339,6 +407,9 @@ def main():
     a = ap.parse_args()
     try:
         cfg = load_config(a.config)
+        if a.preview:
+            preview(cfg)
+            return
         today = a.today or dt.date.today().isoformat()
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", today):
             raise ConfigError("--today must be YYYY-MM-DD")

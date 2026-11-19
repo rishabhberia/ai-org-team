@@ -56,15 +56,19 @@ Ask Claude something like:
 
 > Set up an AI team for my company with Sales, Legal, Finance and Operations.
 
-The skill interviews you about the organization, the principal, each department's scope and
-restrictions, and the confidentiality walls. It shows you the plan, then generates:
+**You design the structure.** The skill asks what your organization does, proposes departments
+from a menu of common ones, and lets you add, drop, rename, merge, or split a department into
+several AIs (for example two Sales AIs, one per business line). It shows you the org chart
+(`scaffold.py --preview`) and changes it until you approve. Then it interviews you on each AI's
+scope, restrictions, systems and the confidentiality walls, and generates:
 
 | Repo | Contents |
 |---|---|
 | Management AI | `CLAUDE.md` charter; `knowledge/registry/` (department directory, capability matrix, systems map); `knowledge/protocol/` (interop protocol, data-sharing walls, escalation and authority); `knowledge/group/` (decision register, business context); `exchange/REGISTER.md` (the ledger); `logs/` |
 | Each department | `CLAUDE.md` charter with the team section; `knowledge/interop/ai-team.md` (team map and how to ask); `knowledge/00-INDEX.md`; `open-items.md`; `logs/` |
 
-Existing projects can join as departments. Their `CLAUDE.md` is never overwritten. The skill
+Each AI's name, folder and knowledge-base folder are yours to choose. Existing projects can join
+as departments. Their `CLAUDE.md` is never overwritten. The skill
 writes a charter section for you to merge.
 
 It also covers adding, changing and retiring a department, changing the protocol across all
@@ -80,7 +84,7 @@ departments, and a read-only health check (`scripts/check.py`).
 ## Try the scaffold without Claude
 
 ```bash
-python3 skills/ai-org-team/scripts/scaffold.py skills/ai-org-team/examples/example-config.json --dry-run
+python3 skills/ai-org-team/scripts/scaffold.py skills/ai-org-team/examples/example-config.json --preview
 ```
 
 ## License
